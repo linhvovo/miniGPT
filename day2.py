@@ -41,7 +41,7 @@ def get_batch(split):
 
 ... ...(nn.Module):
 
-    def __init__(self, alphabet_size):
+    def __init__(self):
         super().__init__()
         # each token directly reads off the logits for the next token from a lookup table
         self.... = nn.Embedding(..., ...)
@@ -72,7 +72,7 @@ def get_batch(split):
             inputs = torch.cat((inputs, new_tokens), dim=1) # (B, T+1)
         return inputs
 
-model = BigramLanguageModel(alphabet_size)
+model = BigramLanguageModel()
 m = model.to(device)
 
 # create a PyTorch optimizer
