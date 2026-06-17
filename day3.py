@@ -9,8 +9,8 @@ device = 'cuda' if torch.cuda.is_available() else 'cpu'
 iterations = 5000
 learning_rate = 1e-3
 eval_interval = 500
-eval_iters = 200
-n_embd = 32
+eval_iterations = 200
+n_features = 32
 # ------------
 
 torch.manual_seed(1337)
@@ -47,8 +47,8 @@ def estimate_loss():
     out = {}
     model.eval()
     for split in ['train', 'val']:
-        losses = torch.zeros(eval_iters)
-        for k in range(eval_iters):
+        losses = torch.zeros(eval_iterations)
+        for k in range(eval_iterations):
             X, Y = get_batch(split)
             logits, loss = model(X, Y)
             losses[k] = loss.item()
@@ -61,9 +61,9 @@ class BigramLanguageModel(nn.Module):
     def __init__(self):
         super().__init__()
         # each token directly reads off the logits for the next token from a lookup table
-        self.token_embedding_table = nn.Embedding(alphabet_size, n_embd)
-        self.position_embedding_table = nn.Embedding(block_size, n_embd)
-        self.lm_head = nn.Linear(n_embd, alphabet_size)
+        self.token_embedding_table = nn.Embedding(alphabet_size, n_features)
+        self.position_embedding_table = nn.Embedding(block_size, n_features)
+        self.lm_head = nn.Linear(n_features, alphabet_size)
 
     def forward(self, inputs, targets=None):
         B, T = inputs.shape
