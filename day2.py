@@ -6,8 +6,8 @@ from torch.nn import functional as F
 batch_size = 32 # how many independent sequences will we process in parallel?
 block_size = 8 # what is the maximum context length for predictions?
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
-... = 5000
-... = 1e-3
+iterations = 5000
+learning_rate = 1e-3
 # ------------
 
 torch.manual_seed(1337)
@@ -39,35 +39,35 @@ def get_batch(split):
     x, y = x.to(device), y.to(device)
     return x, y
 
-... ...(nn.Module):
+class BigramLanguageModel(nn.Module):
 
     def __init__(self):
         super().__init__()
         # each token directly reads off the logits for the next token from a lookup table
-        self.... = nn.Embedding(..., ...)
+        self.token_embedding_table = nn.Embedding(alphabet_size, alphabet_size)
 
-    def forward(self, inputs, targets):
+    def forward(self, inputs, targets=None):
         # idx and targets are both (B,T) tensor of integers
-        ... = self.token_embedding_table(...) # (B,T,C)
+        logits = self.token_embedding_table(inputs) # (B,T,C)
 
         B, T, C = logits.shape
         logits = logits.view(B*T, C)
         targets = targets.view(B*T)
-        ... = F....(..., ...)
+        loss = F.cross_entropy(logits, targets)
 
         return loss
 
-    def ...(self, inputs, num_new_tokens):
+    def generate(self, inputs, num_new_tokens):
         # inputs is (B, T) array of indices in the current context
-        for _ in range(...):
+        for _ in range(num_new_tokens):
             # get the predictions
             logits = self.token_embedding_table(inputs)
             # focus only on the last time step
             logits = logits[:, -1, :] # becomes (B, C)
             # apply softmax to get probabilities
-            ... = F....(logits, dim=-1) # (B, C)
+            probs = F.softmax(logits, dim=-1) # (B, C)
             # sample from the distribution
-            ... = torch....(probs, num_samples=1) # (B, 1)
+            new_tokens = torch.multinomial(probs, num_samples=1) # (B, 1)
             # append sampled index to the running sequence
             inputs = torch.cat((inputs, new_tokens), dim=1) # (B, T+1)
         return inputs
@@ -76,18 +76,18 @@ model = BigramLanguageModel()
 m = model.to(device)
 
 # create a PyTorch optimizer
-... = torch.optim....(model.parameters(), lr=...)
+optimizer = torch.optim.AdamW(model.parameters(), lr=learning_rate)
 
-for iter in range(...): # increase number of steps for good results
+for iter in range(iterations): # increase number of steps for good results
 
     # sample a batch of data
-    inputs, targets = ...('train')
+    inputs, targets = get_batch('train')
 
     # evaluate the loss
-    ... = model(inputs, targets)
+    loss = model(inputs, targets)
     optimizer.zero_grad(set_to_none=True)
-    .......()
-    .......()
+    loss.backward()
+    optimizer.step()
 
 # generate from the model
 context = torch.zeros((1, 1), dtype=torch.long, device=device)
