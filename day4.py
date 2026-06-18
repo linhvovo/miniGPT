@@ -10,9 +10,9 @@ iterations = 5000
 learning_rate = 1e-3
 eval_interval = 500
 eval_iterations = 200
-... = 32
-... = 6
-... = 0.2
+n_features = 32
+n_heads = 6
+dropout = 0.2
 # ------------
 
 torch.manual_seed(1337)
@@ -58,14 +58,14 @@ def estimate_loss():
     model.train()
     return out
 
-class ...(nn.Module):
+class Head(nn.Module):
     """ one head of self-attention """
 
     def __init__(self, head_size):
         super().__init__()
-        self.... = nn.Linear(..., ..., bias=False)
-        self.... = nn.Linear(n_features, head_size, bias=False)
-        self.... = nn.Linear(n_features, head_size, bias=False)
+        self.key = nn.Linear(n_features, head_size, bias=False)
+        self.query = nn.Linear(n_features, head_size, bias=False)
+        self.value = nn.Linear(n_features, head_size, bias=False)
         self.register_buffer('tril', torch.tril(torch.ones(block_size, block_size)))
 
         self.dropout = nn.Dropout(dropout)
@@ -86,7 +86,7 @@ class ...(nn.Module):
         outputs = weights @ v # (B, T, T) @ (B, T, hs) -> (B, T, hs)
         return outputs
     
-class ...(nn.Module):
+class MultiHeadAttention(nn.Module):
     """ multiple heads of self-attention in parallel """
 
     def __init__(self):
@@ -106,8 +106,8 @@ class GPTLanguageModel(nn.Module):
     def __init__(self):
         super().__init__()
         # each token directly reads off the logits for the next token from a lookup table
-        self.... = nn.Embedding(..., ...)
-        self.... = nn.Embedding(..., ...)
+        self.token_embedding_table = nn.Embedding(alphabet_size, n_features)
+        self.position_embedding_table = nn.Embedding(block_size, n_features)
         self.lm_head = nn.Linear(n_features, alphabet_size)
         self.ln = nn.LayerNorm(n_features)
         self.sa = MultiHeadAttention()
@@ -155,7 +155,7 @@ m = model.to(device)
 # create a PyTorch optimizer
 optimizer = torch.optim.AdamW(model.parameters(), lr=learning_rate)
 
-for iter in range(iterations): # increase number of steps for good results
+for iter in range(iterations): # increase number of steps for good results...
 
     # every once in a while evaluate the loss on train and val sets
     if iter % eval_interval == 0 or iter == iterations - 1:
